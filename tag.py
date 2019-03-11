@@ -6,13 +6,17 @@
 # 6 Retrieve the tags for an individual URL
 
 
+
 from flask import Flask, current_app, request, jsonify
 from flask_sqlite3 import SQLite3
 import click
 from flask.cli import with_appcontext
+from flask_bcrypt import Bcrypt #added
+from flask_basicauth import BasicAuth #added
 
 app = Flask(__name__)
 db = SQLite3(app)
+bcrypt = Bcrypt(app) #added
 
 '''
 if you run 'flask init-db-command' it will drop the current database and reinitialize it from
@@ -29,22 +33,41 @@ def init_db():
     with current_app.open_resource('schema.sql') as f:
         db.connection.executescript(f.read().decode('utf8'))
 
+#--added code here--
+# basic auth subclass checks database
+def checkAuth(username, password):
+    cur = db.connection.cursor()
+    cur.execute("SELECT password FROM User WHERE userName = ?", username)
+    pw_hash = cur.fetchone()
+    if(bcrypt.check_password_hash(pw_hash, password)) == True:
+        return True
+    else:
+        return False
+#-- end code here --
+
 #1
-@app.route("/article/tag/<string:tag>", methods=['POST'])
-def addArtTag(tag):
+#added a password in route
+@app.route("/article/tag/<string:tag>/<string:password>", methods=['POST'])
+def addArtTag(tag, password):
     cur = db.connection.cursor()
     userName = request.form.get('userName')
     title = request.form.get('title')
     body = request.form.get('body')
     insertArticle = (userName, title, body)
 
-    cur.execute("INSERT INTO Article (userName, title, body, commentCount) VALUES (?, ?, ?, 0)", insertArticle)
-    cur.execute("SELECT artId FROM Article WHERE title = ? ", (title,))
-    artId = cur.fetchone()[0]
-    insertTag = (tag, artId)
-    cur.execute("INSERT INTO Tag (tag, artId) VALUES (?, ?)", insertTag)
-    db.connection.commit()
-    return jsonify(artId), 201
+    #--added code here --
+    #authenticate
+    if(check_auth(userName, password) == True):
+        cur.execute("INSERT INTO Article (userName, title, body, commentCount) VALUES (?, ?, ?, 0)", insertArticle)
+        cur.execute("SELECT artId FROM Article WHERE title = ? ", (title,))
+        artId = cur.fetchone()[0]
+        insertTag = (tag, artId)
+        cur.execute("INSERT INTO Tag (tag, artId) VALUES (?, ?)", insertTag)
+        db.connection.commit()
+        return jsonify(artId), 201
+    #invalid credentials, return 409
+    else:
+        return jsonify({'Credentials not found'}), 409
 
 #2 and 3
 @app.route("/article/<string:articleId>/tag/<string:tag>", methods=['PUT'])
@@ -62,7 +85,7 @@ def addTag(articleId, tag):
 def getTags(articleId):
     return f"grabbing all tags from {articleId} article"
 
-#4  
+#4
 @app.route("/article/<string:articleId>/tag/<int:n>", methods=['DELETE'])
 def deleteTags(articleId, n):
     return f"we are deleting {n} tags from an article"
