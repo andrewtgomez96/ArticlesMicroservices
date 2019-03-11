@@ -1,61 +1,113 @@
+#article
 #1 posting a new article
 #2 retrieve an existing article
 #3 edit an existing article (update TIMESTAMP)
-#4 retrieve contents of n most recent getArticles
-#5 retrieve metadata for an article
+#4 delete an existing article
+#5 retrieve contents of n most recent getArticles
+#6 retrieve metadata for an article
 
 from flask import Flask, current_app, request, jsonify
 from flask_sqlite3 import SQLite3
 import click
 from flask.cli import with_appcontext
+from flask_bcrypt import Bcrypt
+from flask_basicauth import BasicAuth
 
-app = Flask(__name__)
-db = SQLite3(app)
 #Sfrom flask_basicauth import BasicAuth
 
 app = Flask(__name__) #create the Flask app
+bcrypt = Bcrypt(app) #bcrypt wrapper
+db = SQLite3(app) #sqlite wrapper
 
-#function for posting and editing a single article
-@app.route("/article/<int:articleId>/<title>/<body>", methods=['POST', 'PATCH']) #allow both GET and POST requests
-def editArticle(articleId, title, body):
+# basic auth subclass checks database
+def checkAuth(username, password):
     cur = db.connection.cursor()
-    userName = request.form.get('userName')
+    cur.execute("SELECT password FROM User WHERE userName = ?", username)
+    pw_hash = cur.fetchone()
+    if(bcrypt.check_password_hash(pw_hash, password)) == True:
+        return True
+    else:
+        return False
 
-    if request.method == 'POST':
-        insertArticle = (userName, title, body)
-        cur.execute("INSERT INTO Article (userName, title, body, created) VALUES (?, ?, ?, 0)", insertArticle)
+# 1 function for posting single article
+@app.route("/article/new/<username>/<password>/<title>/<body>", methods=['POST'])
+def newArticle(username, password, title, body):
+    cur = db.connection.cursor()
+    insertArticle = (userName, title, body)
+    #authenticate
+    if(check_auth(username, password) == True):
+        #add article
+        cur.execute("INSERT INTO Article (userName, title, body, created) VALUES (?, ?, ?,?)", (insertArticle, CURRENT_TIMESTAMP))
         db.connection.commit()
-        return jsonify(artId), 201
+        return jsonify({'Successfully created article' : articleId}), 201
+    else:
+        return jsonify({'Credentials not found'}), 409
 
-    elif request.method == 'PATCH':
-        insertArticle = (userName, title, body)
-
-        #check if article exists
-        if(cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)) == 0:
-            return jsonify({'Not found'}), 404
-        else:
-            cur.execute("UPDATE Article SET (userName, title, body, modified) VALUES (?, ?, ?, 0) WHERE artID = ?", (insertArticle, articleId))
-            db.connection.commit()
-            return jsonify(artId), 201
-
-#2 & 3
-@app.route("/article/<int:articleId>/title", methods=['GET', 'DELETE']) #allow both GET and POST requests
+#2 retrieve existing article
+@app.route("/article/<int:articleId>/title", methods=['GET']) #allow both GET and POST requests
 def getArticle(articleId):
     cur = db.connection.cursor()
+
     #check if articleId exists in DB
     if(cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)) == 0:
         return jsonify({'Article Not found'}), 404
     else:
         #Retrieve article of article id
-        if request.method == 'GET':
-            cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)
-            article = cur.fetchone()[0]
-            return jsonify(article), 200
+        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)
+        article = cur.fetchone()[0]
+        return jsonify(article), 200
 
-        elif request.method == 'DELETE':
-            cur.execute("DELETE FROM article WHERE artID = ?", articleId)
-            return jsonify({'Successfully deleted article' : articleId}), 200
+#3 edit existing article
+@app.route("/article/<int:articleId>/<username>/<password>/<title>/<body>", methods=['PATCH'])
+def editArticle(articleId, username, password, title, body):
+    cur = db.connection.cursor()
+    insertArticle = (userName, title, body)
 
+    #check if article exists
+    if(cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)) == 0:
+        return jsonify({'Not found'}), 404
+    #authenticate
+    elif(check_auth(username, password) == True):
+        cur.execute("UPDATE Article SET (userName, title, body, modified) VALUES (?, ?, ?, ?) WHERE artID = ?", (insertArticle, CURRENT_TIMESTAMP, articleId))
+        db.connection.commit()
+        return jsonify({'Successfully edited article' : articleId}), 200
+    else:
+        return jsonify({'Credentials not found'}), 409
+
+#4  delete and existing article
+@app.route("/article/<int:articleId>/title", methods=['DELETE']) #allow both GET and POST requests
+def deleteArticle(articleId):
+    cur = db.connection.cursor()
+    #check if articleId exists in DB
+    if(cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)) == 0:
+        return jsonify({'Article Not found'}), 404
+    #authenticate
+    elif(check_auth(username, password) == True):
+        #Delete article
+        cur.execute("DELETE FROM article WHERE artID = ?", articleId)
+        return jsonify({'Successfully deleted article' : articleId}), 200
+    else:
+        return jsonify({'Credentials not found'}), 409
+
+#5 retrieve contents of n most recent articles
+@app.route("/articles/<int:n>", methods=['GET']) #allow both GET and POST requests
+def getArticles(n):
+    cur = db.connection.cursor()
+
+    #Retrieve n most recent articles
+    cur.execute("SELECT (title, body) FROM Article ORDER BY created DESC LIMIT ? ", n)
+    artciles = fetchone()
+    return jsonify(articles), 200
+
+#6 retrieve meta data of n most recent articles
+@app.route("/articles/info/<int:n>", methods=['GET']) #allow both GET and POST requests
+def getMetaArticles(n):
+    cur = db.connection.cursor()
+
+    #Retrieve n most recent articles
+    cur.execute("SELECT (userName, title, body, created, url) FROM Article ORDER BY created DESC LIMIT ? ", n)
+    artciles = fetchone()
+    return jsonify(articles), 200
 
 
 
