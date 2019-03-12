@@ -30,12 +30,14 @@ def checkAuth(username, password):
         return False
 
 # 1 function for posting single article
-@app.route("/article/new/<username>/<password>/<title>/<body>", methods=['POST'])
-def newArticle(username, password, title, body):
+@app.route("/article/new/<title>/<body>", methods=['POST'])
+def newArticle(title, body):
     cur = db.connection.cursor()
-    insertArticle = (userName, title, body)
+    username = request.form.get('username')
+    password = request.headers.get('Authorization')
+    insertArticle = (username, title, body)
     #authenticate
-    if(check_auth(username, password) == True):
+    if(checkAuth(username, password) == True):
         #add article
         cur.execute("INSERT INTO Article (userName, title, body, created) VALUES (?, ?, ?,?)", (insertArticle, CURRENT_TIMESTAMP))
         db.connection.commit()
@@ -58,16 +60,18 @@ def getArticle(articleId):
         return jsonify(article), 200
 
 #3 edit existing article
-@app.route("/article/<int:articleId>/<username>/<password>/<title>/<body>", methods=['PATCH'])
-def editArticle(articleId, username, password, title, body):
+@app.route("/article/<int:articleId>/<title>/<body>", methods=['PATCH'])
+def editArticle(articleId, title, body):
     cur = db.connection.cursor()
-    insertArticle = (userName, title, body)
+    username = request.form.get('username')
+    password = request.headers.get('Authorization')
+    insertArticle = (username, title, body)
 
     #check if article exists
     if(cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)) == 0:
         return jsonify({'Not found'}), 404
     #authenticate
-    elif(check_auth(username, password) == True):
+    elif(checkAuth(username, password) == True):
         cur.execute("UPDATE Article SET (userName, title, body, modified) VALUES (?, ?, ?, ?) WHERE artID = ?", (insertArticle, CURRENT_TIMESTAMP, articleId))
         db.connection.commit()
         return jsonify({'Successfully edited article' : articleId}), 200
@@ -75,14 +79,16 @@ def editArticle(articleId, username, password, title, body):
         return jsonify({'Credentials not found'}), 409
 
 #4  delete and existing article
-@app.route("/article/<int:articleId>/title", methods=['DELETE']) #allow both GET and POST requests
+@app.route("/article/<int:articleId>", methods=['DELETE']) #allow both GET and POST requests
 def deleteArticle(articleId):
     cur = db.connection.cursor()
+    username = request.form.get('username')
+    password = request.headers.get('Authorization')
     #check if articleId exists in DB
     if(cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)) == 0:
         return jsonify({'Article Not found'}), 404
     #authenticate
-    elif(check_auth(username, password) == True):
+    elif(checkAuth(username, password) == True):
         #Delete article
         cur.execute("DELETE FROM article WHERE artID = ?", articleId)
         return jsonify({'Successfully deleted article' : articleId}), 200
