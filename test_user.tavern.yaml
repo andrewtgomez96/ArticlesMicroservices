@@ -1,0 +1,90 @@
+---
+
+test_name: Test User Microservices
+
+stages:
+        - name: Try to change the password for a user that does not esixt
+          request:
+                url: http://localhost:2000/user/edit
+                json:
+                        username: enrrique
+                        password: test
+                auth:
+                        - enrrique
+                        - psw123
+                method: PATCH
+                headers:
+                        request.authorization.username: enrrique
+                        request.authorization.password: test
+                        content-type: application/json
+          response:
+                  status_code: 500
+
+---
+
+test_name: Test User Microservices
+
+stages:
+        - name: Create a user
+          request:
+                url: http://localhost:2000/user/new/
+                json:
+                        username: enrrique
+                        password: test
+                method: POST
+                headers:
+                        request.form.get.username: enrrique
+                        content-type: aplication/json
+          response:
+                  status_code: 404
+
+---
+
+test_name: Test User Microservices
+
+stages:
+        - name: Change the user's password
+          request:
+                url: http://localhost:2000/user/edit/
+                json:
+                        username: enrrique
+                        password: test
+                method: PATCH
+                headers:
+                        content-type: application/json
+          response:
+                  status_code: 404
+
+---
+
+test_name: Test User Microservices
+
+stages:
+        - name: Delete the User
+          request:
+                url: http://localhost:2000/user/
+                json:
+                        username: enrrique
+                        password: test
+                method: DELETE
+                headers:
+                        content-type: application/json
+          response:
+                  status_code: 404
+
+---
+
+test_name: Test User Microservices
+
+stages:
+        - name: Try to change the password the the deleted user
+          request:
+                url: http://localhost:2000/user/edit
+                json:
+                        username: enrrique
+                        password: test
+                method: PATCH
+                headers:
+                        content-type: application/json
+          response:
+                  status_code: 500
