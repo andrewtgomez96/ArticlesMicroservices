@@ -31,7 +31,7 @@ def checkAuth(username, password):
 def newUser():
     cur = db.connection.cursor()
     username = request.form.get('username')
-    password = request.headers.get('Authorization')
+    password = request.form.get('password')
     #hash password
     pw_hash = bcrypt.generate_password_hash(password).decode('utf-8')
     insertUser = (username, pw_hash)
@@ -43,13 +43,15 @@ def newUser():
 @app.route("/user", methods=['DELETE'])
 def deleteUser():
     cur = db.connection.cursor()
-    username = request.form.get('username')
-    password = request.headers.get('Authorization')
-    #check if user exists in DB
-    if(cur.execute("SELECT password FROM User WHERE userName = ?", username)) == 0:
-        return jsonify({'User Not found'}), 404
+    if (request.authorization):
+        username = request.authorization.username
+        password = request.authorization.password
+        insertArticle = (username, title, body)
+    else:
+        return jsonify({'Unauthorized response'}), 401
+
     #authenticate
-    elif(checkAuth(username, password) == True):
+    if(checkAuth(username, password) == True):
         #delete user
         cur.execute("DELETE FROM User WHERE userName = ? ", username)
         return jsonify({'Successfully deleted user'}), 200
@@ -61,13 +63,15 @@ def deleteUser():
 @app.route("/user/edit", methods=['PATCH'])
 def editUser():
     cur = db.connection.cursor()
-    username = request.form.get('username')
-    password = request.headers.get('Authorization')
-    #check if user exists
-    if(cur.execute("SELECT password FROM User WHERE userName = ? ", username)) == 0:
-        return jsonify({'User Not found'}), 404
+    if (request.authorization):
+        username = request.authorization.username
+        password = request.authorization.password
+        insertArticle = (username, title, body)
+    else:
+        return jsonify({'Unauthorized response'}), 401
+
     #authenticate
-    elif(checkAth(username, password) == True):
+    if(checkAth(username, password) == True):
         #set new password
         newPassword = request.headers.get('Authorization')
         pw_hash = bcrypt.generate_password_hash(newPassword).decode('utf-8')
