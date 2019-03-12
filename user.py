@@ -27,9 +27,11 @@ def checkAuth(username, password):
         return False
 
 #1 create a new user
-@app.route("/user/new/<username>/<password>", methods=['POST'])
-def newUser(username, password):
+@app.route("/user/new", methods=['POST'])
+def newUser():
     cur = db.connection.cursor()
+    username = request.form.get('username')
+    password = request.headers.get('Authorization')
     #hash password
     pw_hash = bcrypt.generate_password_hash(password).decode('utf-8')
     insertUser = (username, pw_hash)
@@ -38,15 +40,16 @@ def newUser(username, password):
     return jsonify({'Successfully created user' : username}), 201
 
 #2 delete existing user
-@app.route("/user/<username>/<password>", methods=['DELETE'])
-def deleteUser(username, password):
+@app.route("/user", methods=['DELETE'])
+def deleteUser():
     cur = db.connection.cursor()
-
+    username = request.form.get('username')
+    password = request.headers.get('Authorization')
     #check if user exists in DB
     if(cur.execute("SELECT password FROM User WHERE userName = ?", username)) == 0:
         return jsonify({'User Not found'}), 404
     #authenticate
-    elif(check_auth(username, password) == True):
+    elif(checkAuth(username, password) == True):
         #delete user
         cur.execute("DELETE FROM User WHERE userName = ? ", username)
         return jsonify({'Successfully deleted user'}), 200
@@ -55,16 +58,18 @@ def deleteUser(username, password):
         return jsonify({'Credentials not found'}), 409
 
 #3 change existing user's password
-@app.route("/user/edit/<username>/<oldPassword>/<newPassword>", methods=['PATCH'])
-def editUser(username, oldPassword, newPassword):
+@app.route("/user/edit", methods=['PATCH'])
+def editUser():
     cur = db.connection.cursor()
-
+    username = request.form.get('username')
+    password = request.headers.get('Authorization')
     #check if user exists
     if(cur.execute("SELECT password FROM User WHERE userName = ? ", username)) == 0:
         return jsonify({'User Not found'}), 404
     #authenticate
-    elif(check_auth(username, oldPassword) == True):
+    elif(checkAth(username, password) == True):
         #set new password
+        newPassword = request.headers.get('Authorization')
         pw_hash = bcrypt.generate_password_hash(newPassword).decode('utf-8')
         cur.execute("UPDATE User SET (password) VALUES (?) WHERE username = ?", (pw_hash, username))
         db.connection.commit()
