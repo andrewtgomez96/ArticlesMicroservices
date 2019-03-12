@@ -33,9 +33,12 @@ def checkAuth(username, password):
 @app.route("/article/new/<title>/<body>", methods=['POST'])
 def newArticle(title, body):
     cur = db.connection.cursor()
-    username = request.form.get('username')
-    password = request.headers.get('Authorization')
-    insertArticle = (username, title, body)
+    if (request.authorization):
+        username = request.authorization.username
+        password = request.authorization.password
+        insertArticle = (username, title, body)
+    else:
+        return jsonify({'Unauthorized response'}), 401
     #authenticate
     if(checkAuth(username, password) == True):
         #add article
@@ -63,9 +66,12 @@ def getArticle(articleId):
 @app.route("/article/<int:articleId>/<title>/<body>", methods=['PATCH'])
 def editArticle(articleId, title, body):
     cur = db.connection.cursor()
-    username = request.form.get('username')
-    password = request.headers.get('Authorization')
-    insertArticle = (username, title, body)
+    if (request.authorization):
+        username = request.authorization.username
+        password = request.authorization.password
+        insertArticle = (username, title, body)
+    else:
+        return jsonify({'Unauthorized response'}), 401
 
     #check if article exists
     if(cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)) == 0:
@@ -82,8 +88,12 @@ def editArticle(articleId, title, body):
 @app.route("/article/<int:articleId>", methods=['DELETE']) #allow both GET and POST requests
 def deleteArticle(articleId):
     cur = db.connection.cursor()
-    username = request.form.get('username')
-    password = request.headers.get('Authorization')
+    if (request.authorization):
+        username = request.authorization.username
+        password = request.authorization.password
+        insertArticle = (username, title, body)
+    else:
+        return jsonify({'Unauthorized response'}), 401
     #check if articleId exists in DB
     if(cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)) == 0:
         return jsonify({'Article Not found'}), 404
