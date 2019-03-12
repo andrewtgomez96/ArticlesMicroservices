@@ -6,10 +6,9 @@
 # 6 Retrieve the tags for an individual URL
 
 
-
 from flask import Flask, current_app, request, jsonify
 from flask_sqlite3 import SQLite3
-import click
+import click, json
 from flask.cli import with_appcontext
 from flask_bcrypt import Bcrypt #added
 from flask_basicauth import BasicAuth #added
@@ -46,54 +45,90 @@ def checkAuth(username, password):
 #-- end code here --
 
 #1
-#added a password in route
-@app.route("/article/tag/<string:tag>/<string:password>", methods=['POST'])
-def addArtTag(tag, password):
+@app.route("/article/tag/<string:tag>", methods=['POST'])
+def addArtTag(tag):
     cur = db.connection.cursor()
     userName = request.form.get('userName')
     title = request.form.get('title')
     body = request.form.get('body')
+    password = request.headers.get('Authorization')
     insertArticle = (userName, title, body)
 
-    #--added code here --
-    #authenticate
-    if(check_auth(userName, password) == True):
+    if(checkAuth(userName, password) == True):
         cur.execute("INSERT INTO Article (userName, title, body, commentCount) VALUES (?, ?, ?, 0)", insertArticle)
         cur.execute("SELECT artId FROM Article WHERE title = ? ", (title,))
         artId = cur.fetchone()[0]
         insertTag = (tag, artId)
         cur.execute("INSERT INTO Tag (tag, artId) VALUES (?, ?)", insertTag)
         db.connection.commit()
-        return jsonify(artId), 201
-    #invalid credentials, return 409
-    else:
+        return jsonify({'articleId' : artId, 'tag' : tag}), 201
+    else: 
         return jsonify({'Credentials not found'}), 409
 
 #2 and 3
-@app.route("/article/<string:articleId>/tag/<string:tag>", methods=['PUT'])
+@app.route("/article/<int:articleId>/tag/<string:tag>", methods=['PUT'])
 def addTag(articleId, tag):
     cur = db.connection.cursor()
-    cur.execute("""INSERT INTO User (username, password)
-                VALUES ('Andrew', 'disme')""")
-    db.connection.commit()
-    if(articleId != "me"):
-        return "http status code blah blah"
-    return jsonify(cur.execute("select * from User").fetchall())
+    password = request.headers.get('Authorization')
+    userName = request.form.get('userName')
+
+    if(checkAuth(userName, password) == True):
+        if(cur.execute("SELECT artId FROM Article WHERE artId = ? ", (articleId,)) == 0):
+            return jsonify({'articleId was not found'}), 404
+        else:
+            insertTag = (tag, articleId)
+            cur.execute("INSERT INTO TAG (tag, artId) VALUES (?, ?)", insertTag)
+            db.connection.commit()
+            return jsonify(articleId), 200
+    else:
+        return jsonify({'Credentials not found'}), 409
 
 #6
-@app.route("/article/<string:articleId>/tags", methods=['GET'])
+@app.route("/article/<int:articleId>/tags", methods=['GET'])
 def getTags(articleId):
-    return f"grabbing all tags from {articleId} article"
+    cur = db.connection.cursor()
+    if(cur.execute("SELECT artId FROM Article WHERE artId = ? ", (articleId,)) == 0):
+        return jsonify({'articleId was not found'}), 404
+    else: 
+        cur.execute("SELECT (tag) FROM Tag WHERE artId = ?", (articleId,))
+        tags= cur.fetchall()
+        return jsonify(tags), 200
 
-#4
-@app.route("/article/<string:articleId>/tag/<int:n>", methods=['DELETE'])
-def deleteTags(articleId, n):
-    return f"we are deleting {n} tags from an article"
+#4  
+@app.route("/article/<int:articleId>/tag", methods=['DELETE'])
+def deleteTags(articleId):
+    cur = db.connection.cursor()
+    password = request.headers.get('Authorization')
+    userName = request.form.get('userName')
+    returnTags = {}
+    #array holding one or more tags to delete
+    tags = request.form.get('tags')
+    #check if articleId exists in DB
+    if(cur.execute("SELECT artId FROM Article WHERE artId = ? ", (articleId,)) == 0):
+        return jsonify({'articleId was not found'}), 404
+    #authenticate
+    if(checkAuth(userName, password) == True):
+        for tag in tags:
+            rmTag = (tag, articleId)
+            #Delete tags
+            if(cur.execute("DELETE FROM Tag WHERE tag = ? AND articleId = ?", rmTag) == 0):
+                returnTags[f'{tag}'] = 'false'
+            else:
+                returnTags[f'{tag}'] = 'True'
+    else:
+        return jsonify({'Credentials not found'}), 409
+    return jsonify(returnTags), 200
 
 #5
 @app.route("/articles/tag/<string:tag>", methods=['GET'])
 def getArticles(tag):
-    return "List all articles with the new tag"
+    cur = db.connection.cursor()
+    if(cur.execute("SELECT tag FROM Tag WHERE tag = ? ", (tag,)) == 0):
+        return jsonify({'tag was not found'}), 404
+    else: 
+        cur.execute("SELECT artId FROM Tag where tag = ?", (tag,))
+        artIds= cur.fetchall()
+        return jsonify(artIds), 200
 
 
 
