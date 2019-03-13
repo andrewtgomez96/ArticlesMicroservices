@@ -2,10 +2,13 @@
 
 test_name: Test Articles Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Try to post an article without authenticating
           request:
-                url: http://localhost:3000/article/new/
+                url: "http://localhost:{articleP:d}/article/new/"
                 method: POST
           response:
                   status_code: 404
@@ -13,11 +16,14 @@ stages:
 ---
 
 test_name: Test Articles Microservices
+
+includes:
+        - !include includes.yaml
 
 stages:
         - name: Try to post an article using the wrong password
           request:
-                url: http://localhost:3000/article/new/
+                url: "http://localhost:{articleP:d}/article/new/"
                 method: POST
           response:
                   status_code: 404
@@ -25,11 +31,14 @@ stages:
 ---
 
 test_name: Test Articles Microservices
+
+includes:
+        - !include includes.yaml
 
 stages:
         - name: Post an article successfully
           request:
-                url: http://localhost:3000/article/new/
+                url: "http://localhost:{articleP:d}/article/new/"
                 method: POST
           response:
                   status_code: 404
@@ -38,10 +47,13 @@ stages:
 
 test_name: Test Articles Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Retriece the newly posted article
           request:
-                url: http://localhost:3000/article/22
+                url: "http://localhost:{articleP:d}/article/22"
                 method: POST
           response:
                   status_code: 405
@@ -50,10 +62,13 @@ stages:
 
 test_name: Test Articles Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Check that the newly posted article is the most recent
           request:
-                url: http://localhost:3000/article/1
+                url: "http://localhost:{articleP:d}/article/1"
                 method: POST
           response:
                   status_code: 405

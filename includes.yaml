@@ -1,0 +1,13 @@
+# includes.yaml
+---
+
+#file name
+name: Articles
+description: port number
+
+#Variables
+variables:
+        articleP: 5100
+        tagP: 5300
+        commentP: 5000
+        userP: 5200

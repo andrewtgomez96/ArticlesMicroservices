@@ -2,10 +2,13 @@
 
 test_name: Test User Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Try to change the password for a user that does not esixt
           request:
-                url: http://localhost:2000/user/edit
+                url: "http://localhost:{userP:d}/user/edit"
                 json:
                         username: enrrique
                         password: test
@@ -24,10 +27,13 @@ stages:
 
 test_name: Test User Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Create a user
           request:
-                url: http://localhost:2000/user/new/
+                url: "http://localhost:{userP:d}/user/new/"
                 json:
                         username: enrrique
                         password: test
@@ -42,10 +48,13 @@ stages:
 
 test_name: Test User Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Change the user's password
           request:
-                url: http://localhost:2000/user/edit/
+                url: "http://localhost:{userP:d}/user/edit/"
                 json:
                         username: enrrique
                         password: test
@@ -59,10 +68,13 @@ stages:
 
 test_name: Test User Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Delete the User
           request:
-                url: http://localhost:2000/user/
+                url: "http://localhost:{userP:d}/user/"
                 json:
                         username: enrrique
                         password: test
@@ -76,10 +88,13 @@ stages:
 
 test_name: Test User Microservices
 
+includes:
+        - !include includes.yaml
+
 stages:
         - name: Try to change the password the the deleted user
           request:
-                url: http://localhost:2000/user/edit
+                url: "http://localhost:{userP:d}/user/edit"
                 json:
                         username: enrrique
                         password: test
