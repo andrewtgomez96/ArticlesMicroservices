@@ -54,13 +54,14 @@ def getArticle(articleId):
     cur = db.connection.cursor()
 
     #check if articleId exists in DB
-    if(cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)) == 0:
-        return jsonify({'Article Not found'}), 404
-    else:
-        #Retrieve article of article id
+    cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)
+    returnObject = cur.fetchone()
+    if(returnObject):
         cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)
         article = cur.fetchone()[0]
         return jsonify(article), 200
+    else:
+        return jsonify({'Article Not found'}), 404
 
 #3 edit existing article
 @app.route("/article/<int:articleId>/<title>/<body>", methods=['PATCH'])
@@ -74,13 +75,16 @@ def editArticle(articleId, title, body):
         return jsonify({'Unauthorized response'}), 401
 
     #check if article exists
-    if(cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)) == 0:
-        return jsonify({'Not found'}), 404
     #authenticate
-    elif(checkAuth(username, password) == True):
-        cur.execute("UPDATE Article SET (userName, title, body, modified) VALUES (?, ?, ?, ?) WHERE artID = ?", (insertArticle, CURRENT_TIMESTAMP, articleId))
-        db.connection.commit()
-        return jsonify({'Successfully edited article' : articleId}), 200
+    if(checkAuth(username, password) == True):
+        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)
+        returnObject = cur.fetchone()
+        if(returnObject):
+            cur.execute("UPDATE Article SET (userName, title, body, modified) VALUES (?, ?, ?, ?) WHERE artID = ?", (insertArticle, CURRENT_TIMESTAMP, articleId))
+            db.connection.commit()
+            return jsonify({'Successfully edited article' : articleId}), 200
+        else:
+            return jsonify({'Not found'}), 404
     else:
         return jsonify({'Credentials not found'}), 409
 
@@ -95,13 +99,17 @@ def deleteArticle(articleId):
     else:
         return jsonify({'Unauthorized response'}), 401
     #check if articleId exists in DB
-    if(cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)) == 0:
-        return jsonify({'Article Not found'}), 404
     #authenticate
-    elif(checkAuth(username, password) == True):
-        #Delete article
-        cur.execute("DELETE FROM article WHERE artID = ?", articleId)
-        return jsonify({'Successfully deleted article' : articleId}), 200
+    if(checkAuth(username, password) == True):
+        cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)
+        returnObject = cur.fetchone()
+        if(returnObject):
+            #Delete article
+            cur.execute("DELETE FROM article WHERE artID = ?", articleId)
+            db.connection.commit()
+            return jsonify({'Successfully deleted article' : articleId}), 200
+        else:
+            jsonify({'Article Not found'}), 404
     else:
         return jsonify({'Credentials not found'}), 409
 
