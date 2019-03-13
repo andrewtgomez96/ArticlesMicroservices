@@ -33,14 +33,14 @@ def init_db():
         db.connection.executescript(f.read().decode('utf8'))
 
 def checkAuth(username, password):
-    return True
-    #cur = db.connection.cursor()
-    #cur.execute("SELECT password FROM User WHERE userName = ?", username)
-    #pw_hash = cur.fetchone()
-    #if(bcrypt.check_password_hash(pw_hash, password)) == True:
-        #return True
-    #else:
-        #return False
+    cur = db.connection.cursor()
+    print(password)
+    cur.execute("SELECT password FROM User WHERE userName = ?", (username,))
+    pw_hash = cur.fetchone()
+    if(bcrypt.check_password_hash(pw_hash[0], password) == True):
+        return True
+    else:
+        return False
 
 #1
 @app.route("/article/tag/<string:tag>", methods=['POST'])
@@ -55,7 +55,7 @@ def addArtTag(tag):
     else:
         return jsonify('Unauthorized response'), 401
     if(checkAuth(username, password) == True):
-        cur.execute("INSERT INTO Article (userName, title, body, commentCount) VALUES (?, ?, ?, 0)", insertArticle)
+        cur.execute("INSERT INTO Article (userName, title, body) VALUES (?, ?, ?)", insertArticle)
         db.connection.commit()
         cur.execute("SELECT artId FROM Article WHERE title = ? ", (title,))
         artId = cur.fetchone()[0]

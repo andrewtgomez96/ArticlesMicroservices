@@ -35,14 +35,13 @@ def init_db():
 
 # basic auth subclass checks database
 def checkAuth(username, password):
-    return True
-    #cur = db.connection.cursor()
-    #cur.execute("SELECT password FROM User WHERE userName = ?", username)
-    #pw_hash = cur.fetchone()
-    #if(bcrypt.check_password_hash(pw_hash, password)) == True:
-        #return True
-    #else:
-        #return False
+    cur = db.connection.cursor()
+    cur.execute("SELECT password FROM User WHERE userName = ?", username)
+    pw_hash = cur.fetchone()
+    if(bcrypt.check_password_hash(pw_hash[0], password) == True):
+        return True
+    else:
+        return False
 
 #1
 @app.route("/article/<int:articleId>/comment", methods=['POST'])
