@@ -79,10 +79,15 @@ def addTag(articleId, tag):
         cur.execute("SELECT artId FROM Article WHERE artId = ? ", (articleId,))
         returnObject = cur.fetchone()
         if(returnObject):
-            insertTag = (tag, articleId)
-            cur.execute("INSERT INTO TAG (tag, artId) VALUES (?, ?)", insertTag)
-            db.connection.commit()
-            return jsonify(articleId), 200
+            cur.execute("SELECT userName FROM Article WHERE artId = ? ", (articleId,))
+            author = cur.fetchone()[0]
+            if(author == username):
+                insertTag = (tag, articleId)
+                cur.execute("INSERT INTO TAG (tag, artId) VALUES (?, ?)", insertTag)
+                db.connection.commit()
+                return jsonify(articleId), 200
+            else:
+                return jsonify('You are not authorized to add this tag'), 409
         else:
             return jsonify('articleId was not found'), 404
     else:
@@ -120,19 +125,24 @@ def deleteTags(articleId):
     if(returnObject):
         #authenticate
         if(checkAuth(username, password) == True):
-            for tag in tags:
-                rmTag = (tag, articleId)
-                print(rmTag)
-                #Delete tags
-                cur.execute("SELECT * FROM Tag where tag = ? AND artId = ?", rmTag)
-                returnObject = cur.fetchone()
-                if(returnObject):
-                    cur.execute("DELETE FROM Tag WHERE tag = ? AND artId = ?", rmTag)
-                    returnTags[f'{tag}'] = 'True'
-                    db.connection.commit()
-                else:
-                    returnTags[f'{tag}'] = 'false'
-            return jsonify(returnTags), 200
+            cur.execute("SELECT userName FROM Article WHERE artId = ? ", (articleId,))
+            author = cur.fetchone()[0]
+            if(author == username):
+                for tag in tags:
+                    rmTag = (tag, articleId)
+                    print(rmTag)
+                    #Delete tags
+                    cur.execute("SELECT * FROM Tag where tag = ? AND artId = ?", rmTag)
+                    returnObject = cur.fetchone()
+                    if(returnObject):
+                        cur.execute("DELETE FROM Tag WHERE tag = ? AND artId = ?", rmTag)
+                        returnTags[f'{tag}'] = 'True'
+                        db.connection.commit()
+                    else:
+                        returnTags[f'{tag}'] = 'false'
+                return jsonify(returnTags), 200
+            else:
+                return jsonify('You are not authorized to delete this tag'), 409
         else:
             return jsonify('Credentials not found'), 409
     else:
