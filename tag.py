@@ -96,7 +96,7 @@ def getTags(articleId):
     returnObject = cur.fetchone()
     if(returnObject):
         cur.execute("SELECT (tag) FROM Tag WHERE artId = ?", (articleId,))
-        tags= cur.fetchall()
+        tags = cur.fetchall()
         return jsonify(tags), 200
     else: 
         return jsonify('articleId was not found'), 404
@@ -127,8 +127,6 @@ def deleteTags(articleId):
                 cur.execute("SELECT * FROM Tag where tag = ? AND artId = ?", rmTag)
                 returnObject = cur.fetchone()
                 if(returnObject):
-                    var = cur.fetchall()
-                    print(var)
                     cur.execute("DELETE FROM Tag WHERE tag = ? AND artId = ?", rmTag)
                     returnTags[f'{tag}'] = 'True'
                     db.connection.commit()

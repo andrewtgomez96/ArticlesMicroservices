@@ -51,7 +51,7 @@ VALUES ('me', (SELECT artId FROM Article WHERE title = 'Allo About Me')),
 ('story', (SELECT artId FROM Article WHERE title = 'Title 2')),
 ('random', (SELECT artId FROM Article WHERE title = 'Title 2'));
 
-INSERT INTO Comment (comment, artId)
-VALUES ('This article is so annoying SMHHHHH', (SELECT artId FROM Article WHERE title = 'Allo About Me')),
-('Wow I feel enlightened', (SELECT artId FROM Article WHERE title = 'Title 2')),
-('Worst article EVERRRR', (SELECT artId FROM Article WHERE title = 'Title 2'));
+INSERT INTO Comment (comment, artId, author)
+VALUES ('This article is so annoying SMHHHHH', (SELECT artId FROM Article WHERE title = 'Allo About Me'), 'Tandrus'),
+('Wow I feel enlightened', (SELECT artId FROM Article WHERE title = 'Title 2'), 'Tandrus'),
+('Worst article EVERRRR', (SELECT artId FROM Article WHERE title = 'Title 2'), 'London');

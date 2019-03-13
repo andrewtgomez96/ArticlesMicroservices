@@ -66,10 +66,10 @@ def comment(articleId):
                 db.connection.commit()
                 return jsonify({'articleId' : articleId, 'commentId' : commentId}), 201
             else:
-                return jsonify({'Credentials not found'}), 409
+                return jsonify('Credentials not found'), 409
         else:
             insertComment = (comment, articleId)
-            cur.execute("INSERT INTO Comment (comment, artId, author) VALUES (?, ?)", insertComment)
+            cur.execute("INSERT INTO Comment (comment, artId) VALUES (?, ?)", insertComment)
             db.connection.commit()
             cur.execute("SELECT commentId FROM Comment where comment = ? AND artId = ?", (comment, articleId))
             commentId = cur.fetchone()[0]
@@ -86,7 +86,7 @@ def deleteComment(commentId):
         username = request.authorization.username
         password = request.authorization.password
     else:
-        return jsonify({'Unauthorized response'}), 401
+        return jsonify('Unauthorized request'), 401
     cur.execute("SELECT * FROM Comment WHERE commentId = ? ", (commentId,))
     returnObject = cur.fetchone()
     if(returnObject):
@@ -96,11 +96,11 @@ def deleteComment(commentId):
             if(author == username):
                 cur.execute("DELETE FROM Comment WHERE commentId = ?", (commentId,))
                 db.connection.commit()
-                return jsonify({'comment deleted'}), 200
+                return jsonify('comment deleted'), 200
             else:
-                return jsonify({'You are not authorized to delete this comment'}), 409
+                return jsonify('You are not authorized to delete this comment'), 409
         else:
-            return jsonify({'Credentials not found'}), 409
+            return jsonify('Credentials not found'), 409
     else:
         return jsonify('commentId was not found'), 404
 
@@ -112,27 +112,27 @@ def getNumOfComments(articleId):
     returnObject = cur.fetchone()
     if(returnObject):
         cur.execute("SELECT * FROM Comment WHERE artId = ?", (articleId,))
-        tags= cur.fetchall()
-        return jsonify(len(tags)), 200
+        comments= cur.fetchall()
+        return jsonify(len(comments)), 200
     else: 
-        return jsonify({'articleId was not found'}), 404
+        return jsonify('articleId was not found'), 404
 
 #4 NEED TO ADD THE N PART TO THIS FUNCTION
 @app.route("/article/<string:articleId>/comments/<int:n>", methods=['GET'])
 def getNComments(articleId, n):
     cur = db.connection.cursor()
-    nComments = (n, articleId)
+    nComments = (articleId, n)
     cur.execute("SELECT artId FROM Article WHERE artId = ? ", (articleId,))
     returnObject = cur.fetchone()
     if(returnObject):
-        cur.execute("SELECT TOP ? comment FROM Comment WHERE artId = ? ORDER BY created DESC", nComments)
+        cur.execute("SELECT comment FROM Comment WHERE artId = ? ORDER BY created DESC LIMIT ?", nComments)
         comments = cur.fetchall()
         returnComments = {}
         for comment in comments:
-            returnComments['comment'] = f'{comment}'
+            returnComments['comment'] = comment[0]
         return jsonify(returnComments), 200
     else: 
-        return jsonify({'articleId was not found'}), 404
+        return jsonify('articleId was not found'), 404
 
 
 
