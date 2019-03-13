@@ -1,4 +1,4 @@
-web: python3 comments.py
-web: python3 articles.py
-web: python3 user.py
-web: python3 tag.py
+web: FLASK_APP=comments flask run -p $PORT
+web: FLASK_APP=articles.py flask run -p $PORT
+web: FLASK_APP=user.py flask run -p $PORT
+web: FLASK_APP=tag.py flask run -p $PORT
