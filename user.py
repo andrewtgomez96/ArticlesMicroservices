@@ -48,16 +48,16 @@ def deleteUser():
         password = request.authorization.password
         insertArticle = (username, title, body)
     else:
-        return jsonify({'Unauthorized response'}), 401
+        return jsonify('Unauthorized response'), 401
 
     #authenticate
     if(checkAuth(username, password) == True):
         #delete user
         cur.execute("DELETE FROM User WHERE userName = ? ", username)
-        return jsonify({'Successfully deleted user'}), 200
+        return jsonify('Successfully deleted user'), 200
     #invalid credentials, return 409
     else:
-        return jsonify({'Credentials not found'}), 409
+        return jsonify('Credentials not found'), 409
 
 #3 change existing user's password
 @app.route("/user/edit", methods=['PATCH'])
@@ -68,7 +68,7 @@ def editUser():
         password = request.authorization.password
         insertArticle = (username, title, body)
     else:
-        return jsonify({'Unauthorized response'}), 401
+        return jsonify('Unauthorized response'), 401
 
     #authenticate
     if(checkAth(username, password) == True):
@@ -77,9 +77,9 @@ def editUser():
         pw_hash = bcrypt.generate_password_hash(newPassword).decode('utf-8')
         cur.execute("UPDATE User SET (password) VALUES (?) WHERE username = ?", (pw_hash, username))
         db.connection.commit()
-        return jsonify({'Successfully updated user password'}), 200
+        return jsonify('Successfully updated user password'), 200
     else:
-        return jsonify({'Credentials not found'}), 409
+        return jsonify('Credentials not found'), 409
 
 
 if(__name__ == '__main__'):
