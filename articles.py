@@ -38,7 +38,7 @@ def newArticle(title, body):
         password = request.authorization.password
         insertArticle = (username, title, body)
     else:
-        return jsonify({'Unauthorized response'}), 401
+        return jsonify('Unauthorized response'), 401
     #authenticate
     if(checkAuth(username, password) == True):
         #add article
@@ -46,7 +46,7 @@ def newArticle(title, body):
         db.connection.commit()
         return jsonify({'Successfully created article' : articleId}), 201
     else:
-        return jsonify({'Credentials not found'}), 409
+        return jsonify('Credentials not found'), 409
 
 #2 retrieve existing article
 @app.route("/article/<int:articleId>/title", methods=['GET']) #allow both GET and POST requests
@@ -61,7 +61,7 @@ def getArticle(articleId):
         article = cur.fetchone()[0]
         return jsonify(article), 200
     else:
-        return jsonify({'Article Not found'}), 404
+        return jsonify('Article Not found'), 404
 
 #3 edit existing article
 @app.route("/article/<int:articleId>/<title>/<body>", methods=['PATCH'])
@@ -72,7 +72,7 @@ def editArticle(articleId, title, body):
         password = request.authorization.password
         insertArticle = (username, title, body)
     else:
-        return jsonify({'Unauthorized response'}), 401
+        return jsonify('Unauthorized response'), 401
 
     #check if article exists
     #authenticate
@@ -84,9 +84,9 @@ def editArticle(articleId, title, body):
             db.connection.commit()
             return jsonify({'Successfully edited article' : articleId}), 200
         else:
-            return jsonify({'Not found'}), 404
+            return jsonify('Not found'), 404
     else:
-        return jsonify({'Credentials not found'}), 409
+        return jsonify('Credentials not found'), 409
 
 #4  delete and existing article
 @app.route("/article/<int:articleId>", methods=['DELETE']) #allow both GET and POST requests
@@ -97,7 +97,7 @@ def deleteArticle(articleId):
         password = request.authorization.password
         insertArticle = (username, title, body)
     else:
-        return jsonify({'Unauthorized response'}), 401
+        return ('Unauthorized response'), 401
     #check if articleId exists in DB
     #authenticate
     if(checkAuth(username, password) == True):
@@ -109,9 +109,9 @@ def deleteArticle(articleId):
             db.connection.commit()
             return jsonify({'Successfully deleted article' : articleId}), 200
         else:
-            jsonify({'Article Not found'}), 404
+            jsonify('Article Not found'), 404
     else:
-        return jsonify({'Credentials not found'}), 409
+        return jsonify('Credentials not found'), 409
 
 #5 retrieve contents of n most recent articles
 @app.route("/articles/<int:n>", methods=['GET']) #allow both GET and POST requests
