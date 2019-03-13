@@ -22,9 +22,9 @@ db = SQLite3(app) #sqlite wrapper
 # basic auth subclass checks database
 def checkAuth(username, password):
     cur = db.connection.cursor()
-    cur.execute("SELECT password FROM User WHERE userName = ?", username)
+    cur.execute("SELECT password FROM User WHERE userName = ?", (username,))
     pw_hash = cur.fetchone()
-    if(bcrypt.check_password_hash(pw_hash, password)) == True:
+    if(bcrypt.check_password_hash(pw_hash[], password) == True):
         return True
     else:
         return False
@@ -54,10 +54,10 @@ def getArticle(articleId):
     cur = db.connection.cursor()
 
     #check if articleId exists in DB
-    cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)
+    cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", (articleId,))
     returnObject = cur.fetchone()
     if(returnObject):
-        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)
+        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", (articleId,))
         article = cur.fetchone()[0]
         return jsonify(article), 200
     else:
@@ -77,7 +77,7 @@ def editArticle(articleId, title, body):
     #check if article exists
     #authenticate
     if(checkAuth(username, password) == True):
-        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", articleId)
+        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", (articleId,))
         returnObject = cur.fetchone()
         if(returnObject):
             cur.execute("UPDATE Article SET (userName, title, body, modified) VALUES (?, ?, ?, ?) WHERE artID = ?", (insertArticle, CURRENT_TIMESTAMP, articleId))
@@ -101,11 +101,11 @@ def deleteArticle(articleId):
     #check if articleId exists in DB
     #authenticate
     if(checkAuth(username, password) == True):
-        cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", articleId)
+        cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", (articleId,))
         returnObject = cur.fetchone()
         if(returnObject):
             #Delete article
-            cur.execute("DELETE FROM article WHERE artID = ?", articleId)
+            cur.execute("DELETE FROM article WHERE artID = ?", (articleId,))
             db.connection.commit()
             return jsonify({'Successfully deleted article' : articleId}), 200
         else:
@@ -119,7 +119,7 @@ def getArticles(n):
     cur = db.connection.cursor()
 
     #Retrieve n most recent articles
-    cur.execute("SELECT (title, body) FROM Article ORDER BY created DESC LIMIT ? ", n)
+    cur.execute("SELECT (title, body) FROM Article ORDER BY created DESC LIMIT ? ", (n,))
     artciles = fetchone()
     return jsonify(articles), 200
 
@@ -129,7 +129,7 @@ def getMetaArticles(n):
     cur = db.connection.cursor()
 
     #Retrieve n most recent articles
-    cur.execute("SELECT (userName, title, body, created, url) FROM Article ORDER BY created DESC LIMIT ? ", n)
+    cur.execute("SELECT (userName, title, body, created, url) FROM Article ORDER BY created DESC LIMIT ? ", (n,))
     artciles = fetchone()
     return jsonify(articles), 200
 
