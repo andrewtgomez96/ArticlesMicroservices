@@ -24,7 +24,7 @@ def checkAuth(username, password):
     cur = db.connection.cursor()
     cur.execute("SELECT password FROM User WHERE userName = ?", (username,))
     pw_hash = cur.fetchone()
-    if(bcrypt.check_password_hash(pw_hash[], password) == True):
+    if(bcrypt.check_password_hash(pw_hash[0], password) == True):
         return True
     else:
         return False
@@ -42,23 +42,23 @@ def newArticle(title, body):
     #authenticate
     if(checkAuth(username, password) == True):
         #add article
-        cur.execute("INSERT INTO Article (userName, title, body, created) VALUES (?, ?, ?,?)", (insertArticle, CURRENT_TIMESTAMP))
+        cur.execute("INSERT INTO Article (userName, title, body) VALUES (?, ?, ?)", insertArticle)
         db.connection.commit()
-        return jsonify({'Successfully created article' : articleId}), 201
+        return jsonify('Successfully created article'), 201
     else:
         return jsonify('Credentials not found'), 409
 
 #2 retrieve existing article
-@app.route("/article/<int:articleId>/title", methods=['GET']) #allow both GET and POST requests
+@app.route("/article/<int:articleId>/title", methods=['GET'])
 def getArticle(articleId):
     cur = db.connection.cursor()
 
     #check if articleId exists in DB
-    cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", (articleId,))
+    cur.execute("SELECT * FROM Article WHERE artId = ? ", (articleId,))
     returnObject = cur.fetchone()
     if(returnObject):
-        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", (articleId,))
-        article = cur.fetchone()[0]
+        cur.execute("SELECT title, body FROM Article WHERE artID = ? ", (articleId,))
+        article = cur.fetchone()
         return jsonify(article), 200
     else:
         return jsonify('Article Not found'), 404
@@ -77,10 +77,10 @@ def editArticle(articleId, title, body):
     #check if article exists
     #authenticate
     if(checkAuth(username, password) == True):
-        cur.execute("SELECT (title, body) FROM Article WHERE artID = ? ", (articleId,))
+        cur.execute("SELECT title, body FROM Article WHERE artID = ? ", (articleId,))
         returnObject = cur.fetchone()
         if(returnObject):
-            cur.execute("UPDATE Article SET (userName, title, body, modified) VALUES (?, ?, ?, ?) WHERE artID = ?", (insertArticle, CURRENT_TIMESTAMP, articleId))
+            cur.execute("UPDATE Article SET (userName, title, body) VALUES (?, ?, ?) WHERE artID = ?", (insertArticle, articleId))
             db.connection.commit()
             return jsonify({'Successfully edited article' : articleId}), 200
         else:
@@ -95,13 +95,12 @@ def deleteArticle(articleId):
     if (request.authorization):
         username = request.authorization.username
         password = request.authorization.password
-        insertArticle = (username, title, body)
     else:
         return ('Unauthorized response'), 401
     #check if articleId exists in DB
     #authenticate
     if(checkAuth(username, password) == True):
-        cur.execute("SELECT (title, body) FROM Article WHERE artId = ? ", (articleId,))
+        cur.execute("SELECT title, body FROM Article WHERE artId = ? ", (articleId,))
         returnObject = cur.fetchone()
         if(returnObject):
             #Delete article
@@ -119,8 +118,8 @@ def getArticles(n):
     cur = db.connection.cursor()
 
     #Retrieve n most recent articles
-    cur.execute("SELECT (title, body) FROM Article ORDER BY created DESC LIMIT ? ", (n,))
-    artciles = fetchone()
+    cur.execute("SELECT title, body FROM Article ORDER BY created DESC LIMIT ? ", (n,))
+    articles = cur.fetchall()
     return jsonify(articles), 200
 
 #6 retrieve meta data of n most recent articles
@@ -129,8 +128,8 @@ def getMetaArticles(n):
     cur = db.connection.cursor()
 
     #Retrieve n most recent articles
-    cur.execute("SELECT (userName, title, body, created, url) FROM Article ORDER BY created DESC LIMIT ? ", (n,))
-    artciles = fetchone()
+    cur.execute("SELECT userName, title, body, created FROM Article ORDER BY created DESC LIMIT ? ", (n,))
+    articles = cur.fetchall()
     return jsonify(articles), 200
 
 

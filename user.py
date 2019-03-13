@@ -35,8 +35,8 @@ def newUser():
     #hash password
     pw_hash = bcrypt.generate_password_hash(password).decode('utf-8')
     insertUser = (username, pw_hash)
-    cur.execute("INSERT INTO User (userName, password) VALUES (?, ?)", (insertUser,))
-    db.connection.commit())
+    cur.execute("INSERT INTO User (userName, password) VALUES (?, ?)", (insertUser))
+    db.connection.commit()
     return jsonify({'Successfully created user' : username}), 201
 
 #2 delete existing user
@@ -46,7 +46,6 @@ def deleteUser():
     if (request.authorization):
         username = request.authorization.username
         password = request.authorization.password
-        insertArticle = (username, title, body)
     else:
         return jsonify('Unauthorized response'), 401
 
@@ -54,7 +53,8 @@ def deleteUser():
     if(checkAuth(username, password) == True):
         #delete user
         cur.execute("DELETE FROM User WHERE userName = ? ", (username,))
-        return jsonify('Successfully deleted user'), 200)
+        db.connection.commit()
+        return jsonify('Successfully deleted user'), 200
     #invalid credentials, return 409
     else:
         return jsonify('Credentials not found'), 409
@@ -63,19 +63,18 @@ def deleteUser():
 @app.route("/user/edit", methods=['PATCH'])
 def editUser():
     cur = db.connection.cursor()
+    newPassword = request.form.get('password')
     if (request.authorization):
         username = request.authorization.username
         password = request.authorization.password
-        insertArticle = (username, title, body)
     else:
         return jsonify('Unauthorized response'), 401
 
     #authenticate
-    if(checkAth(username, password) == True):
+    if(checkAuth(username, password) == True):
         #set new password
-        newPassword = request.headers.get('Authorization')
         pw_hash = bcrypt.generate_password_hash(newPassword).decode('utf-8')
-        cur.execute("UPDATE User SET (password) VALUES (?) WHERE username = ?", (pw_hash, username))
+        cur.execute("UPDATE User SET password = ? WHERE username = ?", (pw_hash, username))
         db.connection.commit()
         return jsonify('Successfully updated user password'), 200
     else:
