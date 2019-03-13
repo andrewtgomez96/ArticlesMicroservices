@@ -16,7 +16,6 @@ CREATE TABLE Article (
   modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
-  commentCount INTEGER NOT NULL,
   FOREIGN KEY (userName) REFERENCES User(userName)
 );
 
@@ -42,10 +41,10 @@ VALUES ('Tandrus', 'password'),
 ('Macgrey', 'password1'),
 ('London', 'password2');
 
-INSERT INTO Article (userName, title, body, commentCount)
-VALUES ('Tandrus', 'Allo About Me', 'I love me, myself and I so much....', 1),
-('Macgrey', 'Title 2', 'This article tells the story of nothing on a cold summers night in October...', 2),
-('London', 'Title 3', 'It all began the day after yesterday...', 0);
+INSERT INTO Article (userName, title, body)
+VALUES ('Tandrus', 'Allo About Me', 'I love me, myself and I so much....'),
+('Macgrey', 'Title 2', 'This article tells the story of nothing on a cold summers night in October...'),
+('London', 'Title 3', 'It all began the day after yesterday...');
 
 INSERT INTO Tag (tag, artId)
 VALUES ('me', (SELECT artId FROM Article WHERE title = 'Allo About Me')),
