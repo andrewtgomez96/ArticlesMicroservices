@@ -6,139 +6,131 @@
 #5 retrieve contents of n most recent getArticles
 #6 retrieve metadata for an article
 
-from flask import Flask, request, jsonify
-import click, json
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, current_app, request, jsonify
+from flask_sqlite3 import SQLite3
+import click
 from flask.cli import with_appcontext
-from dbConfig import db
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from flask_bcrypt import Bcrypt
+from flask_basicauth import BasicAuth
+
+#Sfrom flask_basicauth import BasicAuth
 
 app = Flask(__name__) #create the Flask app
-db = SQLAlchemy(app)
+bcrypt = Bcrypt(app) #bcrypt wrapper
+db = SQLite3(app) #sqlite wrapper
 
-'''
-if you run 'flask init-db-command' it will create the articles database from the dbconfig file
-'''
-@app.cli.command()
-@with_appcontext
-def init_db_command():
-    print("Clear the existing data and create new tables.")
-    init_db()
-    click.echo('Initialized the database.')
-
-def init_db():
-    db.create_all(bind='articles')
-    engine = create_engine ('sqlite:///articleDB.db')
-    connection = engine.connect()
-    Session = sessionmaker(bind=engine)
+# basic auth subclass checks database
+def checkAuth(username, password):
+    cur = db.connection.cursor()
+    cur.execute("SELECT password FROM User WHERE userName = ?", (username,))
+    pw_hash = cur.fetchone()
+    if(bcrypt.check_password_hash(pw_hash[0], password) == True):
+        return True
+    else:
+        return False
 
 # 1 function for posting single article
 @app.route("/article/new/<title>/<body>", methods=['POST'])
-def newArticle(Atitle, Abody):
-    session = Session()
-    #reverse proxy
+def newArticle(title, body):
+    cur = db.connection.cursor()
     if (request.authorization):
         username = request.authorization.username
         password = request.authorization.password
-        user = username
+        insertArticle = (username, title, body)
     else:
-        db.session.rollback()
         return jsonify('Unauthorized response'), 401
-
-    #pass info into articles database
-    a = Article(username = user, title = Atitle, body = Abody)
-    db.session.add(a)
-    db.session.commit()
-    db.session.close()
-    return jsonify('Successfully created article'), 201
+    #authenticate
+    if(checkAuth(username, password) == True):
+        #add article
+        cur.execute("INSERT INTO Article (userName, title, body) VALUES (?, ?, ?)", insertArticle)
+        db.connection.commit()
+        return jsonify('Successfully created article'), 201
+    else:
+        return jsonify('Credentials not found'), 409
 
 #2 retrieve existing article
 @app.route("/article/<int:articleId>/title", methods=['GET'])
 def getArticle(articleId):
-    session = Session()
+    cur = db.connection.cursor()
+
     #check if articleId exists in DB
-    returnObject = Article.query.filter_by(artId = articleId).first()
+    cur.execute("SELECT * FROM Article WHERE artId = ? ", (articleId,))
+    returnObject = cur.fetchone()
     if(returnObject):
-        db.session.close()
-        return jsonify(returnObject), 200
+        cur.execute("SELECT title, body FROM Article WHERE artID = ? ", (articleId,))
+        article = cur.fetchone()
+        return jsonify(article), 200
     else:
-        db.session.rollback()
         return jsonify('Article Not found'), 404
 
 #3 edit existing article
 @app.route("/article/<int:articleId>/<title>/<body>", methods=['PATCH'])
-def editArticle(articleId, Atitle, Abody):
-    session = Session()
+def editArticle(articleId, title, body):
+    cur = db.connection.cursor()
     if (request.authorization):
         username = request.authorization.username
         password = request.authorization.password
-        user = username
+        insertArticle = (username, title, body)
     else:
-        db.session.rollback()
         return jsonify('Unauthorized response'), 401
 
-    returnObject = Article.query.filter_by(artId = articleId).first()
-    if(returnObject):
-        returnObject.userName = user
-        returnObject.title = Atitle
-        returnObject.body = Abody
-        db.session.commit()
-        db.session.close()
-        return jsonify({'Successfully edited article' : articleId}), 200
+    #check if article exists
+    #authenticate
+    if(checkAuth(username, password) == True):
+        cur.execute("SELECT title, body FROM Article WHERE artID = ? ", (articleId,))
+        returnObject = cur.fetchone()
+        if(returnObject):
+            cur.execute("UPDATE Article SET (userName, title, body) VALUES (?, ?, ?) WHERE artID = ?", (insertArticle, articleId))
+            db.connection.commit()
+            return jsonify({'Successfully edited article' : articleId}), 200
+        else:
+            return jsonify('Not found'), 404
     else:
-        db.session.rollback()
-        return jsonify('Not found'), 404
+        return jsonify('Credentials not found'), 409
 
 #4  delete and existing article
 @app.route("/article/<int:articleId>", methods=['DELETE']) #allow both GET and POST requests
 def deleteArticle(articleId):
-    session = Session()
+    cur = db.connection.cursor()
     if (request.authorization):
         username = request.authorization.username
         password = request.authorization.password
     else:
-        db.session.rollback()
         return ('Unauthorized response'), 401
-
     #check if articleId exists in DB
-    returnObject = Article.query.filter_by(artId = articleId).first()
-    if(returnObject):
-        #Delete article
-        db.session.delete(returnObject)
-        db.session.commit()
-        db.session.close()
-        return jsonify({'Successfully deleted article' : articleId}), 200
+    #authenticate
+    if(checkAuth(username, password) == True):
+        cur.execute("SELECT title, body FROM Article WHERE artId = ? ", (articleId,))
+        returnObject = cur.fetchone()
+        if(returnObject):
+            #Delete article
+            cur.execute("DELETE FROM article WHERE artID = ?", (articleId,))
+            db.connection.commit()
+            return jsonify({'Successfully deleted article' : articleId}), 200
+        else:
+            jsonify('Article Not found'), 404
     else:
-        db.session.rollback()
-        return jsonify('Article Not found'), 404
+        return jsonify('Credentials not found'), 409
 
 #5 retrieve contents of n most recent articles
-@app.route("/articles/<int:n>", methods=['GET'])
+@app.route("/articles/<int:n>", methods=['GET']) #allow both GET and POST requests
 def getArticles(n):
-    session = Session()
+    cur = db.connection.cursor()
+
     #Retrieve n most recent articles
-    returnObject = Article.query.with_entities(Article.title, Article.body).limit(n).first()
-    if(returnObject):
-        #return list of articles
-        db.session.close()
-        return jsonify(returnObject), 200
-    else:
-        db.session.rollback()
-        return jsonify('Article Not found'), 404
+    cur.execute("SELECT title, body FROM Article ORDER BY created DESC LIMIT ? ", (n,))
+    articles = cur.fetchall()
+    return jsonify(articles), 200
+
 #6 retrieve meta data of n most recent articles
 @app.route("/articles/info/<int:n>", methods=['GET']) #allow both GET and POST requests
 def getMetaArticles(n):
-    session = Session()
+    cur = db.connection.cursor()
+
     #Retrieve n most recent articles
-    returnObject = Article.query.limit(n)
-    if(returnObject):
-        #return list of articles
-        db.session.close()
-        return jsonify(returnObject), 200
-    else:
-        db.session.rollback()
-        return jsonify('Article Not found'), 404
+    cur.execute("SELECT userName, title, body, created FROM Article ORDER BY created DESC LIMIT ? ", (n,))
+    articles = cur.fetchall()
+    return jsonify(articles), 200
 
 
 
